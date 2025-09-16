@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Photo Age Calculator</title>
     <script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -389,6 +391,102 @@
         }
 
 
+        /* Action buttons */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        .action-btn {
+            padding: 10px 20px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .action-btn:hover {
+            background: #1976D2;
+        }
+
+        .share-btn {
+            background: #4CAF50;
+        }
+
+        .share-btn:hover {
+            background: #45a049;
+        }
+
+        /* Share overlay styles */
+        .share-overlay {
+            background: white;
+            padding: 20px;
+            margin-top: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .share-overlay-ages {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .share-overlay-age {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .share-overlay-age.baby {
+            background: #e8f5e9;
+            color: #2E7D32;
+        }
+
+        .share-overlay-age.child {
+            background: #fff3e0;
+            color: #E65100;
+        }
+
+        .share-overlay-age.adult {
+            background: #e3f2fd;
+            color: #0277BD;
+        }
+
+        .share-overlay-name {
+            font-weight: 600;
+        }
+
+        .share-overlay-value {
+            font-weight: bold;
+        }
+
+        .milestone-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: linear-gradient(135deg, #FFD700, #FFA000);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+            z-index: 10;
+        }
+
         /* Helper text */
         .helper-text {
             background: #f9f9f9;
@@ -629,13 +727,22 @@
         <div class="results-section" id="results-section">
             <div class="results-content">
                 <div class="photo-section">
-                    <div class="photo-container">
-                        <div class="photo-wrapper">
+                    <div class="photo-container" id="photo-container">
+                        <div class="photo-wrapper" id="photo-wrapper">
+                            <div class="milestone-badge" id="milestone-badge" style="display: none;"></div>
                             <img id="photo-display" src="" alt="Uploaded photo">
+                        </div>
+                        <div class="share-overlay" id="share-overlay">
+                            <div class="share-overlay-ages" id="share-overlay-ages"></div>
                         </div>
                         <div class="photo-date" id="photo-date"></div>
                         <div class="no-exif-message" id="no-exif" style="display: none;">
                             This image has no timestamp
+                        </div>
+                        <div class="action-buttons">
+                            <button class="action-btn share-btn" onclick="sharePhoto()">
+                                <span>📤</span> Share Photo
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -666,6 +773,7 @@
     <script>
         // Store people array in memory
         let people = [];
+        let currentAgesData = [];
 
         // Load people from localStorage
         function loadPeople() {
@@ -923,6 +1031,112 @@
             return `${yearText} ${dayText}`;
         }
 
+        // Check for milestones
+        function checkMilestones(ages) {
+            const milestones = [];
+            
+            ages.forEach(age => {
+                // Check for specific day milestones
+                if (age.totalDays === 100) milestones.push('100 Days! 🎉');
+                else if (age.totalDays === 365) milestones.push('1 Year! 🎂');
+                else if (age.totalDays === 730) milestones.push('2 Years! 🎈');
+                else if (age.totalDays === 1000) milestones.push('1000 Days! 🌟');
+                else if (age.totalDays === 1825) milestones.push('5 Years! 🎊');
+                else if (age.years === 10 && age.days === 0) milestones.push('10 Years! 🏆');
+                else if (age.years === 18 && age.days === 0) milestones.push('18 Years! 🎓');
+                else if (age.years === 21 && age.days === 0) milestones.push('21 Years! 🥳');
+            });
+            
+            return milestones;
+        }
+
+        // Trigger confetti animation
+        function triggerConfetti() {
+            // Multiple bursts for celebration
+            const count = 200;
+            const defaults = {
+                origin: { y: 0.7 },
+                zIndex: 9999
+            };
+
+            function fire(particleRatio, opts) {
+                confetti(Object.assign({}, defaults, opts, {
+                    particleCount: Math.floor(count * particleRatio)
+                }));
+            }
+
+            fire(0.25, { spread: 26, startVelocity: 55 });
+            fire(0.2, { spread: 60 });
+            fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+            fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+            fire(0.1, { spread: 120, startVelocity: 45 });
+        }
+
+        // Share photo with ages below
+        function sharePhoto() {
+            const shareOverlay = document.getElementById('share-overlay');
+            const shareOverlayAges = document.getElementById('share-overlay-ages');
+            const photoDate = document.getElementById('photo-date');
+            const actionButtons = document.querySelector('.action-buttons');
+            
+            // Create ages overlay content
+            const overlayHtml = currentAgesData.map(data => {
+                let categoryClass = '';
+                if (data.badgeClass.includes('baby')) categoryClass = 'baby';
+                else if (data.badgeClass.includes('child')) categoryClass = 'child';
+                else if (data.badgeClass.includes('adult')) categoryClass = 'adult';
+                
+                return `
+                    <div class="share-overlay-age ${categoryClass}">
+                        <span>${data.icon}</span>
+                        <span class="share-overlay-name">${data.name}:</span>
+                        <span class="share-overlay-value">${data.age}</span>
+                    </div>
+                `;
+            }).join('');
+            
+            shareOverlayAges.innerHTML = overlayHtml;
+            
+            // Hide elements we don't want in the share
+            const originalPhotoDateDisplay = photoDate.style.display;
+            const originalActionButtonsDisplay = actionButtons.style.display;
+            photoDate.style.display = 'none';
+            actionButtons.style.display = 'none';
+            
+            // Show overlay below photo
+            shareOverlay.style.display = 'block';
+            
+            // Wait a moment for overlay to render
+            setTimeout(() => {
+                const photoContainer = document.getElementById('photo-container') || document.querySelector('.photo-container');
+                
+                // Use html2canvas to capture the photo container including ages below
+                html2canvas(photoContainer, {
+                    allowTaint: true,
+                    useCORS: true,
+                    backgroundColor: 'white'
+                }).then(canvas => {
+                    // Restore original display states
+                    shareOverlay.style.display = 'none';
+                    photoDate.style.display = originalPhotoDateDisplay;
+                    actionButtons.style.display = originalActionButtonsDisplay;
+                    
+                    // Convert to blob
+                    canvas.toBlob(blob => {
+                        // Create download link
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `photo-ages-${Date.now()}.png`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    });
+                });
+            }, 100);
+        }
+
         // Display results
         function displayResults(imageUrl, photoDate) {
             // Show results section
@@ -958,11 +1172,15 @@
                 
                 // Arrays to store age data for both display and overlay
                 let agesData = [];
+                let calculatedAges = [];
                 
                 // Calculate and display ages
                 const agesHtml = people.map((person, index) => {
                     const age = calculateAge(person.birthdate, photoDate);
                     const formattedAge = formatAge(age);
+                    
+                    // Store calculated age for milestone check
+                    calculatedAges.push(age);
                     
                     // Determine age category and icon
                     let ageClass = '';
@@ -1016,6 +1234,21 @@
                 }).join('');
                 
                 agesListElement.innerHTML = agesHtml;
+                
+                // Store current ages data globally for sharing
+                currentAgesData = agesData;
+                
+                // Check for milestones and trigger confetti
+                const milestones = checkMilestones(calculatedAges);
+                const milestoneBadge = document.getElementById('milestone-badge');
+                
+                if (milestones.length > 0) {
+                    milestoneBadge.textContent = milestones[0];
+                    milestoneBadge.style.display = 'block';
+                    setTimeout(triggerConfetti, 500);
+                } else {
+                    milestoneBadge.style.display = 'none';
+                }
             } else {
                 photoDateElement.style.display = 'none';
                 noExifElement.style.display = 'block';
