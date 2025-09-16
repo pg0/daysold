@@ -1004,7 +1004,7 @@
                         dateStatus.textContent = `🤰 Schwangerschaft (SSW ${currentWeek}+${dayInWeek})`;
                         dateStatus.style.color = '#4CAF50';
                     } else {
-                        dateStatus.textContent = '⚠️ Datum liegt vor der Empfängnis';
+                        dateStatus.textContent = '';
                         dateStatus.style.color = '#ff9800';
                     }
                 }
@@ -1256,8 +1256,8 @@
             // Handle edge case - photo before conception
             if (currentPregnancyDays < 0) {
                 return {
-                    status: 'pre-conception',
-                    displayText: 'Vor der Empfängnis'
+                    status: 'not-applicable',
+                    displayText: ''
                 };
             }
 
@@ -1287,22 +1287,18 @@
             // Primary display: SSW format with days
             const sswDisplay = `SSW ${weeks}+${days}${days === 1 ? ' Tag' : ' Tage'}`;
 
-            // For current pregnancies, add remaining time info
-            if (!isInUtero) {
-                let timeInfo;
-                if (daysUntilBirth <= 7) {
-                    timeInfo = `noch ${daysUntilBirth} Tag${daysUntilBirth !== 1 ? 'e' : ''}`;
-                } else if (daysUntilBirth <= 30) {
-                    const weeksLeft = Math.floor(daysUntilBirth / 7);
-                    timeInfo = `noch ${weeksLeft} Woche${weeksLeft !== 1 ? 'n' : ''}`;
-                } else {
-                    timeInfo = `noch ${daysUntilBirth} Tage`;
-                }
-                return `${sswDisplay} (${timeInfo})`;
+            // Add remaining time info for both current pregnancies and in-utero photos
+            let timeInfo;
+            if (daysUntilBirth <= 7) {
+                timeInfo = `noch ${daysUntilBirth} Tag${daysUntilBirth !== 1 ? 'e' : ''} bis zur Geburt${isInUtero ? '' : '(stermin)'}`;
+            } else if (daysUntilBirth <= 30) {
+                const weeksLeft = Math.floor(daysUntilBirth / 7);
+                timeInfo = `noch ${weeksLeft} Woche${weeksLeft !== 1 ? 'n' : ''} bis zur Geburt${isInUtero ? '' : '(stermin)'}`;
+            } else {
+                timeInfo = `noch ${daysUntilBirth} Tage bis zur Geburt${isInUtero ? '' : '(stermin)'}`;
             }
 
-            // For in-utero photos, just show SSW
-            return sswDisplay;
+            return `${sswDisplay} (${timeInfo})`;
         }
 
         // Format age for born person
@@ -1641,7 +1637,9 @@
                             // Photo from when child was in utero (now born)
                             ageClass += ' in-utero';  // Add special class for in-utero photos
                             icon = '👶';  // Baby icon since they're born now
-                            secondaryInfo = `<div class="secondary-info">🤰 Im Mutterleib</div>`;
+                            // Show days until birth prominently
+                            const daysText = age.daysUntilBirth === 1 ? 'Tag' : 'Tage';
+                            secondaryInfo = `<div class="secondary-info">🤰 Im Mutterleib - noch ${age.daysUntilBirth} ${daysText} bis zur Geburt</div>`;
                             if (developmentInfo) {
                                 secondaryInfo += `<div class="development-info">${developmentInfo}</div>`;
                             }
@@ -1659,9 +1657,9 @@
                         ageClass = 'overdue';
                         ageValueClass = 'pregnancy-age';
                         icon = '⏰';  // Overdue indicator
-                    } else if (age.status === 'pre-conception') {
-                        ageClass = '';
-                        icon = '✨';
+                    } else if (age.status === 'not-applicable') {
+                        // Don't display anything for photos before conception
+                        return '';
                     } else if (age.status === 'not-yet-born') {
                         ageClass = '';
                         icon = '⏳';
