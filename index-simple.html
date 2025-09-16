@@ -612,23 +612,15 @@
                 return;
             }
             
-            listContainer.innerHTML = people.map((person, index) => {
-                // Get just the month and year for compact display
-                const locale = navigator.language || 'en-US';
-                const shortDate = person.birthdate.toLocaleDateString(locale, { 
-                    month: 'short', 
-                    year: 'numeric' 
-                });
-                return `
-                    <div class="person-item">
-                        <div class="person-info">
-                            <span class="person-name">${person.name}</span>
-                            <span class="person-birthdate">(${shortDate})</span>
-                        </div>
-                        <button class="remove-btn" onclick="removePerson(${index})" title="Remove">×</button>
+            listContainer.innerHTML = people.map((person, index) => `
+                <div class="person-item">
+                    <div class="person-info">
+                        <span class="person-name">${person.name}</span>
+                        <span class="person-birthdate">(${formatDate(person.birthdate).split(',')[0]})</span>
                     </div>
-                `;
-            }).join('');
+                    <button class="remove-btn" onclick="removePerson(${index})" title="Remove">×</button>
+                </div>
+            `).join('');
         }
 
         // Update upload section availability
@@ -641,10 +633,9 @@
             }
         }
 
-        // Format date for display using browser locale
+        // Format date for display
         function formatDate(date) {
-            const locale = navigator.language || 'en-US';
-            return date.toLocaleDateString(locale, { 
+            return date.toLocaleDateString('en-US', { 
                 year: 'numeric', 
                 month: 'long', 
                 day: 'numeric' 
@@ -716,56 +707,17 @@
             return { years, days, totalDays };
         }
 
-        // Get localized text for time units
-        function getLocalizedTimeUnits() {
-            const lang = navigator.language || 'en';
-            
-            // Common translations for major languages
-            const translations = {
-                'en': { day: 'day', days: 'days', year: 'year', years: 'years', notBornYet: 'Not born yet' },
-                'es': { day: 'día', days: 'días', year: 'año', years: 'años', notBornYet: 'Aún no nacido' },
-                'fr': { day: 'jour', days: 'jours', year: 'an', years: 'ans', notBornYet: 'Pas encore né' },
-                'de': { day: 'Tag', days: 'Tage', year: 'Jahr', years: 'Jahre', notBornYet: 'Noch nicht geboren' },
-                'it': { day: 'giorno', days: 'giorni', year: 'anno', years: 'anni', notBornYet: 'Non ancora nato' },
-                'pt': { day: 'dia', days: 'dias', year: 'ano', years: 'anos', notBornYet: 'Ainda não nascido' },
-                'nl': { day: 'dag', days: 'dagen', year: 'jaar', years: 'jaar', notBornYet: 'Nog niet geboren' },
-                'pl': { day: 'dzień', days: 'dni', year: 'rok', years: 'lata', notBornYet: 'Jeszcze nie urodzony' },
-                'ru': { day: 'день', days: 'дней', year: 'год', years: 'лет', notBornYet: 'Еще не родился' },
-                'ja': { day: '日', days: '日', year: '年', years: '年', notBornYet: 'まだ生まれていません' },
-                'zh': { day: '天', days: '天', year: '年', years: '年', notBornYet: '尚未出生' },
-                'ko': { day: '일', days: '일', year: '년', years: '년', notBornYet: '아직 태어나지 않음' },
-                'ar': { day: 'يوم', days: 'أيام', year: 'سنة', years: 'سنوات', notBornYet: 'لم يولد بعد' },
-                'hi': { day: 'दिन', days: 'दिन', year: 'साल', years: 'साल', notBornYet: 'अभी पैदा नहीं हुआ' },
-                'sv': { day: 'dag', days: 'dagar', year: 'år', years: 'år', notBornYet: 'Inte född än' },
-                'no': { day: 'dag', days: 'dager', year: 'år', years: 'år', notBornYet: 'Ikke født ennå' },
-                'da': { day: 'dag', days: 'dage', year: 'år', years: 'år', notBornYet: 'Ikke født endnu' },
-                'fi': { day: 'päivä', days: 'päivää', year: 'vuosi', years: 'vuotta', notBornYet: 'Ei vielä syntynyt' },
-                'tr': { day: 'gün', days: 'gün', year: 'yıl', years: 'yıl', notBornYet: 'Henüz doğmadı' },
-                'he': { day: 'יום', days: 'ימים', year: 'שנה', years: 'שנים', notBornYet: 'עדיין לא נולד' }
-            };
-            
-            // Get base language code (e.g., 'en' from 'en-US')
-            const baseLang = lang.split('-')[0];
-            
-            // Return translation or default to English
-            return translations[baseLang] || translations['en'];
-        }
-
         // Format age for display
         function formatAge(ageObject) {
-            const units = getLocalizedTimeUnits();
-            
             if (ageObject.notBornYet) {
-                return units.notBornYet;
+                return "Not born yet";
             }
             
             if (ageObject.years === 0) {
-                return `${ageObject.days} ${ageObject.days === 1 ? units.day : units.days}`;
+                return `${ageObject.days} days`;
             }
             
-            const yearText = `${ageObject.years} ${ageObject.years === 1 ? units.year : units.years}`;
-            const dayText = `${ageObject.days} ${ageObject.days === 1 ? units.day : units.days}`;
-            return `${yearText} ${dayText}`;
+            return `${ageObject.years} year${ageObject.years !== 1 ? 's' : ''} ${ageObject.days} days`;
         }
 
         // Display results
