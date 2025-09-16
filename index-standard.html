@@ -71,7 +71,9 @@
         }
 
         input[type="text"],
-        input[type="date"] {
+        input[type="date"],
+        input[type="number"],
+        select {
             width: 100%;
             padding: 10px;
             border: 2px solid #ddd;
@@ -81,9 +83,75 @@
         }
 
         input[type="text"]:focus,
-        input[type="date"]:focus {
+        input[type="date"]:focus,
+        input[type="number"]:focus,
+        select:focus {
             outline: none;
             border-color: #4CAF50;
+        }
+
+        .birthdate-inputs {
+            display: flex;
+            gap: 8px;
+        }
+
+        .date-input {
+            flex: 1;
+            min-width: 0;
+            text-align: center;
+            padding: 10px 5px;
+        }
+
+        .date-input::placeholder {
+            font-size: 0.85rem;
+            opacity: 0.5;
+        }
+
+        .date-input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        .date-input[type="number"]::-webkit-outer-spin-button,
+        .date-input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        #birth-day {
+            flex: 0 0 50px;
+        }
+
+        #birth-month {
+            flex: 0 0 50px;
+        }
+
+        #birth-year {
+            flex: 0 0 70px;
+        }
+
+        /* Responsive adjustments for birthdate inputs */
+        @media (max-width: 400px) {
+            #birth-day, #birth-month {
+                flex: 0 0 45px;
+            }
+            #birth-year {
+                flex: 0 0 65px;
+            }
+            .date-input {
+                padding: 10px 3px;
+                font-size: 15px;
+            }
+        }
+
+        /* Desktop: Use native date picker */
+        @media (min-width: 768px) and (pointer: fine) {
+            .birthdate-inputs {
+                display: none;
+            }
+
+            #person-birthdate {
+                display: block !important;
+            }
         }
 
         button {
@@ -758,9 +826,14 @@
                     <label for="person-name">Name</label>
                     <input type="text" id="person-name" placeholder="Enter name">
                 </div>
-                <div class="form-group">
-                    <label for="person-birthdate">Birthdate</label>
-                    <input type="date" id="person-birthdate">
+                <div class="form-group birthdate-group">
+                    <label>Birthdate</label>
+                    <div class="birthdate-inputs">
+                        <input type="number" id="birth-day" placeholder="DD" min="1" max="31" class="date-input">
+                        <input type="number" id="birth-month" placeholder="MM" min="1" max="12" class="date-input">
+                        <input type="number" id="birth-year" placeholder="YYYY" min="1900" max="2100" class="date-input">
+                    </div>
+                    <input type="date" id="person-birthdate" style="display: none;">
                 </div>
                 <button class="add-person-btn" onclick="handleAddPerson()">Add Person</button>
             </div>
@@ -888,32 +961,82 @@
         function handleAddPerson() {
             const nameInput = document.getElementById('person-name');
             const birthdateInput = document.getElementById('person-birthdate');
-            
+
             const name = nameInput.value.trim();
-            const birthdate = birthdateInput.value;
-            
+            let birthdate = birthdateInput.value;
+
+            // Check if using mobile inputs
+            const dayInput = document.getElementById('birth-day');
+            const monthInput = document.getElementById('birth-month');
+            const yearInput = document.getElementById('birth-year');
+
+            // If mobile inputs are visible, construct date from them
+            if (window.getComputedStyle(dayInput.parentElement).display !== 'none') {
+                const day = parseInt(dayInput.value);
+                const month = parseInt(monthInput.value) - 1; // Convert to 0-indexed for JS Date
+                const year = parseInt(yearInput.value);
+
+                // Validate mobile inputs
+                if (!day || !monthInput.value || !year) {
+                    alert('Please enter a complete birthdate');
+                    return;
+                }
+
+                if (day < 1 || day > 31) {
+                    alert('Please enter a valid day (1-31)');
+                    return;
+                }
+
+                if (parseInt(monthInput.value) < 1 || parseInt(monthInput.value) > 12) {
+                    alert('Please enter a valid month (1-12)');
+                    return;
+                }
+
+                if (year < 1900 || year > new Date().getFullYear()) {
+                    alert('Please enter a valid year');
+                    return;
+                }
+
+                // Construct date (month is 0-indexed in JS)
+                const constructedDate = new Date(year, month, day);
+
+                // Check if date is valid (handles things like Feb 31)
+                if (constructedDate.getDate() !== day ||
+                    constructedDate.getMonth() !== month ||
+                    constructedDate.getFullYear() !== year) {
+                    alert('Please enter a valid date');
+                    return;
+                }
+
+                // Format as YYYY-MM-DD for consistency
+                birthdate = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            }
+
             // Validate inputs
             if (!name) {
                 alert('Please enter a name');
                 return;
             }
-            
+
             if (!birthdate) {
                 alert('Please select a birthdate');
                 return;
             }
-            
+
             const birthdateObj = new Date(birthdate);
             if (birthdateObj > new Date()) {
                 alert('Birthdate must be in the past');
                 return;
             }
-            
+
             addPerson(name, birthdate);
-            
+
             // Clear inputs
             nameInput.value = '';
             birthdateInput.value = '';
+            dayInput.value = '';
+            monthInput.value = '';
+            yearInput.value = '';
         }
 
         // Update the people list display
@@ -1446,14 +1569,64 @@
             }
         }
 
+        // Sync mobile inputs with hidden date input
+        function syncDateInputs() {
+            const dayInput = document.getElementById('birth-day');
+            const monthInput = document.getElementById('birth-month');
+            const yearInput = document.getElementById('birth-year');
+            const dateInput = document.getElementById('person-birthdate');
+
+            const day = parseInt(dayInput.value);
+            const monthValue = parseInt(monthInput.value);
+            const year = parseInt(yearInput.value);
+
+            if (day && monthValue && year) {
+                const month = monthValue - 1; // Convert to 0-indexed for JS Date
+                // Validate and set
+                const constructedDate = new Date(year, month, day);
+                if (constructedDate.getDate() === day &&
+                    constructedDate.getMonth() === month &&
+                    constructedDate.getFullYear() === year) {
+                    dateInput.value = `${year}-${String(monthValue).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                }
+            }
+        }
+
         // Initialize the page
         loadPeople();
         updatePeopleList();
         updateUploadSection();
         initializeDragAndDrop();
-        
+
         // Set max date for birthdate input to today
         document.getElementById('person-birthdate').max = new Date().toISOString().split('T')[0];
+
+        // Set max year for year input
+        document.getElementById('birth-year').max = new Date().getFullYear();
+
+        // Add event listeners for Enter key on mobile date inputs
+        ['birth-day', 'birth-month', 'birth-year'].forEach(id => {
+            document.getElementById(id).addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handleAddPerson();
+                }
+            });
+        });
+
+        // Auto-advance between date fields
+        document.getElementById('birth-day').addEventListener('input', function() {
+            if (this.value.length === 2 && parseInt(this.value) >= 1 && parseInt(this.value) <= 31) {
+                document.getElementById('birth-month').focus();
+            }
+        });
+
+        document.getElementById('birth-month').addEventListener('input', function() {
+            if (this.value.length >= 1 && parseInt(this.value) >= 1 && parseInt(this.value) <= 12) {
+                if (this.value.length === 2 || parseInt(this.value) > 1) {
+                    document.getElementById('birth-year').focus();
+                }
+            }
+        });
     </script>
 </body>
 </html>
