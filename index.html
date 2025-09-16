@@ -111,42 +111,59 @@
         }
 
         .people-list {
-            margin-top: 20px;
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .person-item {
-            display: flex;
-            justify-content: space-between;
+            display: inline-flex;
             align-items: center;
-            padding: 12px;
+            gap: 8px;
+            padding: 8px 12px;
             background: white;
-            margin-bottom: 10px;
-            border-radius: 6px;
+            border-radius: 20px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e0e0e0;
         }
 
         .person-info {
-            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .person-name {
             font-weight: 600;
             color: #333;
+            font-size: 0.95rem;
         }
 
         .person-birthdate {
-            color: #666;
-            font-size: 0.9rem;
+            color: #888;
+            font-size: 0.85rem;
         }
 
         .remove-btn {
-            background: #f44336;
-            padding: 6px 15px;
-            font-size: 14px;
+            background: none;
+            border: none;
+            color: #f44336;
+            padding: 0;
+            font-size: 1.2rem;
+            line-height: 1;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .remove-btn:hover {
-            background: #da190b;
+            transform: scale(1.2);
+            background: none;
         }
 
         /* Upload Section */
@@ -511,9 +528,37 @@
         // Store people array in memory
         let people = [];
 
+        // Load people from localStorage
+        function loadPeople() {
+            const stored = localStorage.getItem('photoAgePeople');
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored);
+                    // Convert birthdate strings back to Date objects
+                    people = parsed.map(p => ({
+                        name: p.name,
+                        birthdate: new Date(p.birthdate)
+                    }));
+                } catch (e) {
+                    console.error('Failed to load people from storage:', e);
+                    people = [];
+                }
+            }
+        }
+
+        // Save people to localStorage
+        function savePeople() {
+            try {
+                localStorage.setItem('photoAgePeople', JSON.stringify(people));
+            } catch (e) {
+                console.error('Failed to save people to storage:', e);
+            }
+        }
+
         // Add person to array
         function addPerson(name, birthdate) {
             people.push({ name, birthdate: new Date(birthdate) });
+            savePeople();
             updatePeopleList();
             updateUploadSection();
         }
@@ -521,6 +566,7 @@
         // Remove person from array
         function removePerson(index) {
             people.splice(index, 1);
+            savePeople();
             updatePeopleList();
             updateUploadSection();
         }
@@ -569,10 +615,10 @@
             listContainer.innerHTML = people.map((person, index) => `
                 <div class="person-item">
                     <div class="person-info">
-                        <div class="person-name">${person.name}</div>
-                        <div class="person-birthdate">Born: ${formatDate(person.birthdate)}</div>
+                        <span class="person-name">${person.name}</span>
+                        <span class="person-birthdate">(${formatDate(person.birthdate).split(',')[0]})</span>
                     </div>
-                    <button class="remove-btn" onclick="removePerson(${index})">Remove</button>
+                    <button class="remove-btn" onclick="removePerson(${index})" title="Remove">×</button>
                 </div>
             `).join('');
         }
@@ -778,6 +824,7 @@
         }
 
         // Initialize the page
+        loadPeople();
         updatePeopleList();
         updateUploadSection();
         initializeDragAndDrop();
