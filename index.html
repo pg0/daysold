@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Age Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2.5rem;
+        }
+
+        /* People Setup Section */
+        .people-setup {
+            background: #f9f9f9;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .people-setup h2 {
+            color: #555;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .person-form {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="date"]:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        button {
+            padding: 10px 25px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .add-person-btn {
+            align-self: flex-end;
+            margin-bottom: 3px;
+        }
+
+        .people-list {
+            margin-top: 20px;
+        }
+
+        .person-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .person-info {
+            flex: 1;
+        }
+
+        .person-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .person-birthdate {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .remove-btn {
+            background: #f44336;
+            padding: 6px 15px;
+            font-size: 14px;
+        }
+
+        .remove-btn:hover {
+            background: #da190b;
+        }
+
+        /* Upload Section */
+        .upload-section {
+            background: #f0f7ff;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .upload-section.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .upload-section h2 {
+            color: #555;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+
+        .file-input-label {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #2196F3;
+            color: white;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .file-input-label:hover {
+            background: #1976D2;
+        }
+
+        input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-name {
+            margin-top: 10px;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* Results Section */
+        .results-section {
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .results-content {
+            display: flex;
+            gap: 30px;
+        }
+
+        .photo-section {
+            flex: 1;
+        }
+
+        .photo-container {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .photo-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .photo-date {
+            margin-top: 15px;
+            font-size: 1.1rem;
+            color: #666;
+        }
+
+        .no-exif-message {
+            color: #ff9800;
+            font-style: italic;
+            margin-top: 15px;
+        }
+
+        .ages-section {
+            flex: 0 0 350px;
+        }
+
+        .ages-container {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .ages-container h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+
+        .age-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .age-person-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .age-value {
+            font-size: 1.3rem;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .upload-another {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 767px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .person-form {
+                flex-direction: column;
+            }
+
+            .form-group {
+                min-width: 100%;
+            }
+
+            .add-person-btn {
+                width: 100%;
+            }
+
+            .results-content {
+                flex-direction: column;
+            }
+
+            .ages-section {
+                flex: 1;
+            }
+        }
+
+        /* Desktop: side-by-side */
+        @media (min-width: 768px) {
+            .results-content {
+                display: flex;
+            }
+            
+            .photo-section {
+                flex: 1;
+            }
+            
+            .ages-section {
+                flex: 0 0 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Photo Age Calculator</h1>
+        
+        <!-- People Setup Section -->
+        <div class="people-setup">
+            <h2>Add People</h2>
+            <div class="person-form">
+                <div class="form-group">
+                    <label for="person-name">Name</label>
+                    <input type="text" id="person-name" placeholder="Enter name">
+                </div>
+                <div class="form-group">
+                    <label for="person-birthdate">Birthdate</label>
+                    <input type="date" id="person-birthdate">
+                </div>
+                <button class="add-person-btn" onclick="handleAddPerson()">Add Person</button>
+            </div>
+            <div class="people-list" id="people-list"></div>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="upload-section disabled" id="upload-section">
+            <h2>Upload Photo</h2>
+            <div class="file-input-wrapper">
+                <label class="file-input-label" for="photo-input">
+                    Choose Photo
+                </label>
+                <input type="file" id="photo-input" accept="image/*" onchange="handleImageUpload(this.files[0])">
+            </div>
+            <div class="file-name" id="file-name"></div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section" id="results-section">
+            <div class="results-content">
+                <div class="photo-section">
+                    <div class="photo-container">
+                        <img id="photo-display" src="" alt="Uploaded photo">
+                        <div class="photo-date" id="photo-date"></div>
+                        <div class="no-exif-message" id="no-exif" style="display: none;">
+                            This image has no timestamp
+                        </div>
+                    </div>
+                </div>
+                <div class="ages-section">
+                    <div class="ages-container">
+                        <h3>Ages at Photo Time</h3>
+                        <div id="ages-list"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="upload-another">
+                <button onclick="resetUpload()">Upload Another Photo</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Store people array in memory
+        let people = [];
+
+        // Add person to array
+        function addPerson(name, birthdate) {
+            people.push({ name, birthdate: new Date(birthdate) });
+            updatePeopleList();
+            updateUploadSection();
+        }
+
+        // Remove person from array
+        function removePerson(index) {
+            people.splice(index, 1);
+            updatePeopleList();
+            updateUploadSection();
+        }
+
+        // Handle add person button click
+        function handleAddPerson() {
+            const nameInput = document.getElementById('person-name');
+            const birthdateInput = document.getElementById('person-birthdate');
+            
+            const name = nameInput.value.trim();
+            const birthdate = birthdateInput.value;
+            
+            // Validate inputs
+            if (!name) {
+                alert('Please enter a name');
+                return;
+            }
+            
+            if (!birthdate) {
+                alert('Please select a birthdate');
+                return;
+            }
+            
+            const birthdateObj = new Date(birthdate);
+            if (birthdateObj > new Date()) {
+                alert('Birthdate must be in the past');
+                return;
+            }
+            
+            addPerson(name, birthdate);
+            
+            // Clear inputs
+            nameInput.value = '';
+            birthdateInput.value = '';
+        }
+
+        // Update the people list display
+        function updatePeopleList() {
+            const listContainer = document.getElementById('people-list');
+            
+            if (people.length === 0) {
+                listContainer.innerHTML = '<p style="color: #999; text-align: center;">No people added yet</p>';
+                return;
+            }
+            
+            listContainer.innerHTML = people.map((person, index) => `
+                <div class="person-item">
+                    <div class="person-info">
+                        <div class="person-name">${person.name}</div>
+                        <div class="person-birthdate">Born: ${formatDate(person.birthdate)}</div>
+                    </div>
+                    <button class="remove-btn" onclick="removePerson(${index})">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        // Update upload section availability
+        function updateUploadSection() {
+            const uploadSection = document.getElementById('upload-section');
+            if (people.length > 0) {
+                uploadSection.classList.remove('disabled');
+            } else {
+                uploadSection.classList.add('disabled');
+            }
+        }
+
+        // Format date for display
+        function formatDate(date) {
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+
+        // Handle image upload
+        function handleImageUpload(file) {
+            if (!file) return;
+            
+            // Update file name display
+            document.getElementById('file-name').textContent = file.name;
+            
+            // Create file reader for image display
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imageUrl = e.target.result;
+                
+                // Extract EXIF date
+                extractEXIFDate(file, function(photoDate) {
+                    displayResults(imageUrl, photoDate);
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Extract EXIF date from image
+        function extractEXIFDate(file, callback) {
+            EXIF.getData(file, function() {
+                const dateTimeOriginal = EXIF.getTag(this, 'DateTimeOriginal');
+                const dateTime = EXIF.getTag(this, 'DateTime');
+                
+                const exifDateString = dateTimeOriginal || dateTime;
+                
+                if (exifDateString) {
+                    // Parse EXIF date format: "YYYY:MM:DD HH:MM:SS"
+                    const parts = exifDateString.split(' ');
+                    const dateParts = parts[0].split(':');
+                    const timeParts = parts[1] ? parts[1].split(':') : ['00', '00', '00'];
+                    
+                    const photoDate = new Date(
+                        parseInt(dateParts[0]),
+                        parseInt(dateParts[1]) - 1,
+                        parseInt(dateParts[2]),
+                        parseInt(timeParts[0]),
+                        parseInt(timeParts[1]),
+                        parseInt(timeParts[2])
+                    );
+                    
+                    callback(photoDate);
+                } else {
+                    callback(null);
+                }
+            });
+        }
+
+        // Calculate age between two dates
+        function calculateAge(birthdate, photoDate) {
+            const msPerDay = 24 * 60 * 60 * 1000;
+            const totalDays = Math.floor((photoDate - birthdate) / msPerDay);
+            
+            if (totalDays < 0) {
+                return { years: 0, days: 0, notBornYet: true };
+            }
+            
+            const years = Math.floor(totalDays / 365);
+            const days = totalDays % 365;
+            
+            return { years, days, totalDays };
+        }
+
+        // Format age for display
+        function formatAge(ageObject) {
+            if (ageObject.notBornYet) {
+                return "Not born yet";
+            }
+            
+            if (ageObject.years === 0) {
+                return `${ageObject.days} days`;
+            }
+            
+            return `${ageObject.years} year${ageObject.years !== 1 ? 's' : ''} ${ageObject.days} days`;
+        }
+
+        // Display results
+        function displayResults(imageUrl, photoDate) {
+            // Show results section
+            const resultsSection = document.getElementById('results-section');
+            resultsSection.classList.add('active');
+            
+            // Display photo
+            document.getElementById('photo-display').src = imageUrl;
+            
+            // Display photo date or no EXIF message
+            const photoDateElement = document.getElementById('photo-date');
+            const noExifElement = document.getElementById('no-exif');
+            const agesListElement = document.getElementById('ages-list');
+            
+            if (photoDate) {
+                photoDateElement.textContent = `Photo taken: ${formatDate(photoDate)}`;
+                photoDateElement.style.display = 'block';
+                noExifElement.style.display = 'none';
+                
+                // Calculate and display ages
+                const agesHtml = people.map(person => {
+                    const age = calculateAge(person.birthdate, photoDate);
+                    const formattedAge = formatAge(age);
+                    
+                    return `
+                        <div class="age-item">
+                            <div class="age-person-name">${person.name}</div>
+                            <div class="age-value">${formattedAge}</div>
+                        </div>
+                    `;
+                }).join('');
+                
+                agesListElement.innerHTML = agesHtml;
+            } else {
+                photoDateElement.style.display = 'none';
+                noExifElement.style.display = 'block';
+                agesListElement.innerHTML = '<p style="color: #999; text-align: center;">No timestamp available</p>';
+            }
+        }
+
+        // Reset upload for another photo
+        function resetUpload() {
+            document.getElementById('photo-input').value = '';
+            document.getElementById('file-name').textContent = '';
+            document.getElementById('results-section').classList.remove('active');
+        }
+
+        // Initialize the page
+        updatePeopleList();
+        updateUploadSection();
+        
+        // Set max date for birthdate input to today
+        document.getElementById('person-birthdate').max = new Date().toISOString().split('T')[0];
+    </script>
+</body>
+</html>
