@@ -152,10 +152,9 @@
         /* Upload Section */
         .upload-section {
             background: #f0f7ff;
-            padding: 25px;
+            padding: 20px;
             border-radius: 8px;
             margin-bottom: 30px;
-            text-align: center;
         }
 
         .upload-section.disabled {
@@ -165,25 +164,26 @@
 
         .upload-section h2 {
             color: #555;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             font-size: 1.3rem;
         }
+
 
         .file-input-wrapper {
             position: relative;
             display: inline-block;
             cursor: pointer;
-            margin-bottom: 15px;
         }
 
         .file-input-label {
             display: inline-block;
-            padding: 12px 30px;
+            padding: 10px 25px;
             background: #2196F3;
             color: white;
             border-radius: 6px;
             font-weight: 600;
             transition: background 0.3s;
+            white-space: nowrap;
         }
 
         .file-input-label:hover {
@@ -199,6 +199,7 @@
             margin-top: 10px;
             color: #666;
             font-style: italic;
+            padding-left: 10px;
         }
 
         /* Results Section */
@@ -286,6 +287,85 @@
             text-align: center;
         }
 
+        /* Helper text */
+        .helper-text {
+            background: #f9f9f9;
+            border-left: 3px solid #2196F3;
+            padding: 12px 20px;
+            margin-top: 30px;
+            border-radius: 4px;
+            color: #555;
+            font-size: 0.95rem;
+        }
+
+        .helper-steps {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .helper-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .step-number {
+            background: #2196F3;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+
+        /* Drag and Drop Styles */
+        .drop-zone {
+            border: 2px dashed #90CAF9;
+            border-radius: 6px;
+            padding: 20px;
+            background: white;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .drop-zone.dragover {
+            border-color: #4CAF50;
+            background: #e8f5e9;
+            transform: scale(1.01);
+        }
+
+        .drop-zone-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .drop-zone-text {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .drop-zone-icon {
+            font-size: 1.8rem;
+            color: #2196F3;
+        }
+
+        .divider {
+            color: #999;
+            font-size: 0.9rem;
+            padding: 0 10px;
+        }
+
         /* Mobile Responsive */
         @media (max-width: 767px) {
             .container {
@@ -306,6 +386,21 @@
 
             .add-person-btn {
                 width: 100%;
+            }
+
+            .drop-zone-content {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .divider {
+                display: none;
+            }
+
+            .helper-steps {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
             }
 
             .results-content {
@@ -357,11 +452,18 @@
         <!-- Upload Section -->
         <div class="upload-section disabled" id="upload-section">
             <h2>Upload Photo</h2>
-            <div class="file-input-wrapper">
-                <label class="file-input-label" for="photo-input">
-                    Choose Photo
-                </label>
-                <input type="file" id="photo-input" accept="image/*" onchange="handleImageUpload(this.files[0])">
+            <div class="drop-zone" id="drop-zone">
+                <div class="drop-zone-content">
+                    <div class="drop-zone-icon">📷</div>
+                    <div class="drop-zone-text">Drag & drop photo here</div>
+                    <div class="divider">or</div>
+                    <div class="file-input-wrapper">
+                        <label class="file-input-label" for="photo-input">
+                            Choose Photo
+                        </label>
+                        <input type="file" id="photo-input" accept="image/*" onchange="handleImageUpload(this.files[0])">
+                    </div>
+                </div>
             </div>
             <div class="file-name" id="file-name"></div>
         </div>
@@ -387,6 +489,20 @@
             </div>
             <div class="upload-another">
                 <button onclick="resetUpload()">Upload Another Photo</button>
+            </div>
+        </div>
+
+        <!-- Helper Text -->
+        <div class="helper-text">
+            <div class="helper-steps">
+                <div class="helper-step">
+                    <span class="step-number">1</span>
+                    <span>Add person with birthdate</span>
+                </div>
+                <div class="helper-step">
+                    <span class="step-number">2</span>
+                    <span>Upload photo to see ages</span>
+                </div>
             </div>
         </div>
     </div>
@@ -605,9 +721,66 @@
             document.getElementById('results-section').classList.remove('active');
         }
 
+        // Initialize drag and drop
+        function initializeDragAndDrop() {
+            const dropZone = document.getElementById('drop-zone');
+            const uploadSection = document.getElementById('upload-section');
+            
+            // Prevent default drag behaviors
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+                document.body.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            // Highlight drop zone when item is dragged over it
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    if (!uploadSection.classList.contains('disabled')) {
+                        dropZone.classList.add('dragover');
+                    }
+                }, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.classList.remove('dragover');
+                }, false);
+            });
+            
+            // Handle dropped files
+            dropZone.addEventListener('drop', handleDrop, false);
+        }
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        function handleDrop(e) {
+            const uploadSection = document.getElementById('upload-section');
+            if (uploadSection.classList.contains('disabled')) {
+                return;
+            }
+            
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                const file = files[0];
+                
+                // Check if it's an image
+                if (file.type.startsWith('image/')) {
+                    handleImageUpload(file);
+                } else {
+                    alert('Please drop an image file');
+                }
+            }
+        }
+
         // Initialize the page
         updatePeopleList();
         updateUploadSection();
+        initializeDragAndDrop();
         
         // Set max date for birthdate input to today
         document.getElementById('person-birthdate').max = new Date().toISOString().split('T')[0];
