@@ -246,25 +246,29 @@
         }
 
         .photo-container {
-            background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
-            border-radius: 12px;
-            padding: 30px;
+            background: linear-gradient(135deg, #f9f9f9 0%, #f0f0f0 100%);
+            border-radius: 8px;
+            padding: 40px;
             text-align: center;
             position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .photo-wrapper {
             position: relative;
             display: inline-block;
-            background: white;
-            padding: 12px;
-            border-radius: 4px;
+            background: #ffffff;
+            padding: 15px 15px 65px 15px;
+            border: 1px solid #e5e5e5;
+            border-radius: 2px;
             box-shadow: 
-                0 1px 2px rgba(0, 0, 0, 0.07),
-                0 2px 4px rgba(0, 0, 0, 0.07),
-                0 4px 8px rgba(0, 0, 0, 0.07),
-                0 8px 16px rgba(0, 0, 0, 0.07),
-                0 16px 32px rgba(0, 0, 0, 0.07);
+                0 0 0 1px rgba(0, 0, 0, 0.04),
+                0 2px 4px rgba(0, 0, 0, 0.04),
+                0 4px 8px rgba(0, 0, 0, 0.05),
+                0 8px 16px rgba(0, 0, 0, 0.06),
+                0 12px 24px rgba(0, 0, 0, 0.08);
         }
 
         .photo-wrapper::before {
@@ -274,19 +278,34 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(45deg, 
-                transparent 40%, 
-                rgba(255, 255, 255, 0.1) 50%, 
-                transparent 60%);
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.3) 0%, 
+                transparent 20%, 
+                transparent 80%,
+                rgba(0, 0, 0, 0.05) 100%);
             pointer-events: none;
+            border-radius: 2px;
+        }
+
+        .photo-wrapper::after {
+            content: '';
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            color: #999;
+            font-style: italic;
         }
 
         .photo-container img {
             display: block;
             max-width: 100%;
             height: auto;
-            max-height: 70vh;
+            max-height: 65vh;
             object-fit: contain;
+            filter: brightness(1.02) contrast(1.05) saturate(1.1);
         }
 
         .photo-date {
@@ -323,6 +342,30 @@
             margin-bottom: 15px;
             border-radius: 8px;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+            position: relative;
+        }
+
+        .age-item-remove {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 16px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.7;
+        }
+
+        .age-item-remove:hover {
+            opacity: 1;
         }
 
         .age-item.baby {
@@ -426,28 +469,49 @@
 
         /* Share overlay styles */
         .share-overlay {
-            background: white;
-            padding: 20px;
-            margin-top: 15px;
-            border-radius: 8px;
+            position: absolute;
+            bottom: 5px;
+            left: 15px;
+            right: 15px;
+            height: 55px;
+            padding: 0;
             display: none;
         }
 
         .share-overlay-ages {
             display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
+            flex-direction: column;
+            gap: 6px;
+            align-items: flex-start;
             justify-content: center;
+            height: 100%;
+            padding: 0 5px;
+        }
+        
+        .share-overlay-names {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-start;
+            align-items: center;
+        }
+        
+        .share-overlay-date {
+            font-size: 0.7rem;
+            color: #666;
+            margin-top: 2px;
+            text-align: right;
+            width: 100%;
         }
 
         .share-overlay-age {
-            background: white;
-            padding: 8px 12px;
-            border-radius: 20px;
+            padding: 2px 6px;
             display: flex;
             align-items: center;
-            gap: 6px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            gap: 5px;
+            font-size: 0.85rem;
+            color: #333;
+            line-height: 1.2;
         }
 
         .share-overlay-age.baby {
@@ -475,8 +539,8 @@
 
         .milestone-badge {
             position: absolute;
-            top: 10px;
-            left: 10px;
+            top: 20px;
+            left: 20px;
             background: linear-gradient(135deg, #FFD700, #FFA000);
             color: white;
             padding: 8px 15px;
@@ -731,9 +795,9 @@
                         <div class="photo-wrapper" id="photo-wrapper">
                             <div class="milestone-badge" id="milestone-badge" style="display: none;"></div>
                             <img id="photo-display" src="" alt="Uploaded photo">
-                        </div>
-                        <div class="share-overlay" id="share-overlay">
-                            <div class="share-overlay-ages" id="share-overlay-ages"></div>
+                            <div class="share-overlay" id="share-overlay">
+                                <div class="share-overlay-ages" id="share-overlay-ages"></div>
+                            </div>
                         </div>
                         <div class="photo-date" id="photo-date"></div>
                         <div class="no-exif-message" id="no-exif" style="display: none;">
@@ -774,6 +838,8 @@
         // Store people array in memory
         let people = [];
         let currentAgesData = [];
+        let excludedPeople = new Set();
+        let currentPhotoDate = null;
 
         // Load people from localStorage
         function loadPeople() {
@@ -1072,6 +1138,28 @@
             fire(0.1, { spread: 120, startVelocity: 45 });
         }
 
+        // Toggle person exclusion from share
+        function togglePersonExclusion(personName) {
+            if (excludedPeople.has(personName)) {
+                excludedPeople.delete(personName);
+            } else {
+                excludedPeople.add(personName);
+            }
+            
+            // Update UI - hide/show age items
+            const ageItems = document.querySelectorAll('.age-item');
+            ageItems.forEach(item => {
+                const nameElement = item.querySelector('.age-person-name');
+                if (nameElement && nameElement.textContent === personName) {
+                    if (excludedPeople.has(personName)) {
+                        item.style.display = 'none';
+                    } else {
+                        item.style.display = 'block';
+                    }
+                }
+            });
+        }
+
         // Share photo with ages below
         function sharePhoto() {
             const shareOverlay = document.getElementById('share-overlay');
@@ -1079,8 +1167,15 @@
             const photoDate = document.getElementById('photo-date');
             const actionButtons = document.querySelector('.action-buttons');
             
-            // Create ages overlay content
-            const overlayHtml = currentAgesData.map(data => {
+            // Filter out excluded people
+            const includedAges = currentAgesData.filter(data => !excludedPeople.has(data.name));
+            
+            // Create ages overlay content with date
+            let overlayHtml = '';
+            
+            // Add ages in a horizontal container first
+            overlayHtml += '<div class="share-overlay-names">';
+            overlayHtml += includedAges.map(data => {
                 let categoryClass = '';
                 if (data.badgeClass.includes('baby')) categoryClass = 'baby';
                 else if (data.badgeClass.includes('child')) categoryClass = 'child';
@@ -1094,6 +1189,18 @@
                     </div>
                 `;
             }).join('');
+            overlayHtml += '</div>';
+            
+            // Add date below names (date only, no label)
+            if (currentPhotoDate) {
+                const locale = navigator.language || 'en-US';
+                const dateStr = currentPhotoDate.toLocaleDateString(locale, { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+                overlayHtml += `<div class="share-overlay-date">${dateStr}</div>`;
+            }
             
             shareOverlayAges.innerHTML = overlayHtml;
             
@@ -1108,13 +1215,13 @@
             
             // Wait a moment for overlay to render
             setTimeout(() => {
-                const photoContainer = document.getElementById('photo-container') || document.querySelector('.photo-container');
+                const photoWrapper = document.getElementById('photo-wrapper');
                 
-                // Use html2canvas to capture the photo container including ages below
-                html2canvas(photoContainer, {
+                // Use html2canvas to capture just the photo wrapper with ages inside
+                html2canvas(photoWrapper, {
                     allowTaint: true,
                     useCORS: true,
-                    backgroundColor: 'white'
+                    backgroundColor: null
                 }).then(canvas => {
                     // Restore original display states
                     shareOverlay.style.display = 'none';
@@ -1166,6 +1273,9 @@
             const agesListElement = document.getElementById('ages-list');
             
             if (photoDate) {
+                // Store photo date for sharing
+                currentPhotoDate = photoDate;
+                
                 photoDateElement.textContent = `Photo taken: ${formatDate(photoDate)}`;
                 photoDateElement.style.display = 'block';
                 noExifElement.style.display = 'none';
@@ -1224,6 +1334,10 @@
                     
                     return `
                         <div class="age-item ${ageClass}">
+                            <button class="age-item-remove" 
+                                    onclick="togglePersonExclusion('${person.name}')" 
+                                    data-person-name="${person.name}"
+                                    title="Exclude from share">×</button>
                             <div class="age-header">
                                 <span class="age-icon">${icon}</span>
                                 <span class="age-person-name">${person.name}</span>
@@ -1237,6 +1351,9 @@
                 
                 // Store current ages data globally for sharing
                 currentAgesData = agesData;
+                
+                // Reset excluded people when new photo is loaded
+                excludedPeople.clear();
                 
                 // Check for milestones and trigger confetti
                 const milestones = checkMilestones(calculatedAges);
