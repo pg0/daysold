@@ -112,6 +112,71 @@
             margin-bottom: 3px;
         }
 
+        /* Pregnancy-specific styling */
+        .person-result.unborn {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+            border-left: 4px solid #fdcb6e;
+        }
+
+        .person-result.trimester-1 { border-left-color: #a29bfe; }
+        .person-result.trimester-2 { border-left-color: #6c5ce7; }
+        .person-result.trimester-3 { border-left-color: #5f3dc4; }
+
+        .person-result.overdue {
+            background: #ffcccc;
+            border-left: 4px solid #ff6b6b;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+
+        .secondary-info {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+
+        .development-info {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 6px;
+            font-style: italic;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.03);
+            border-radius: 4px;
+            line-height: 1.4;
+        }
+
+        .age-item.unborn {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+            border-left: 4px solid #fdcb6e;
+        }
+
+        .age-item.unborn.in-utero {
+            background: linear-gradient(135deg, #ffeef3 0%, #ffe0eb 100%);
+            border-left: 4px solid #ff69b4;
+        }
+
+        .age-item.trimester-1 { border-left-color: #a29bfe; }
+        .age-item.trimester-2 { border-left-color: #6c5ce7; }
+        .age-item.trimester-3 { border-left-color: #5f3dc4; }
+
+        .age-item.overdue {
+            background: #ffcccc;
+            border-left: 4px solid #ff6b6b;
+            animation: pulse 2s infinite;
+        }
+
+        .age-value.pregnancy-age {
+            color: #f39c12;
+            font-size: 2rem;
+        }
+
         .people-list {
             margin-top: 15px;
             display: flex;
@@ -756,13 +821,14 @@
             <div class="person-form">
                 <div class="form-group">
                     <label for="person-name">Name</label>
-                    <input type="text" id="person-name" placeholder="Enter name">
+                    <input type="text" id="person-name" placeholder="Name oder 'Baby'">
                 </div>
                 <div class="form-group">
-                    <label for="person-birthdate">Birthdate</label>
-                    <input type="date" id="person-birthdate">
+                    <label for="person-birthdate" id="date-label">Geburtsdatum / Errechneter Termin</label>
+                    <input type="date" id="person-birthdate" onchange="updateDateLabel()">
+                    <div id="date-status" style="font-size: 0.85rem; color: #666; margin-top: 5px;"></div>
                 </div>
-                <button class="add-person-btn" onclick="handleAddPerson()">Add Person</button>
+                <button class="add-person-btn" onclick="handleAddPerson()">Person hinzufügen</button>
             </div>
             <div class="people-list" id="people-list"></div>
         </div>
@@ -835,7 +901,7 @@
     </div>
 
     <script>
-        // Store people array in memory
+        // Store people array in memory with support for pregnancy
         let people = [];
         let currentAgesData = [];
         let excludedPeople = new Set();
@@ -847,11 +913,21 @@
             if (stored) {
                 try {
                     const parsed = JSON.parse(stored);
-                    // Convert birthdate strings back to Date objects
-                    people = parsed.map(p => ({
-                        name: p.name,
-                        birthdate: new Date(p.birthdate)
-                    }));
+                    // Convert date strings back to Date objects
+                    people = parsed.map(p => {
+                        const person = {
+                            name: p.name,
+                            isPregnancy: p.isPregnancy || false,
+                            actualBirthDate: p.actualBirthDate ? new Date(p.actualBirthDate) : null
+                        };
+                        if (p.dueDate) {
+                            person.dueDate = new Date(p.dueDate);
+                        }
+                        if (p.birthdate) {
+                            person.birthdate = new Date(p.birthdate);
+                        }
+                        return person;
+                    });
                 } catch (e) {
                     console.error('Failed to load people from storage:', e);
                     people = [];
@@ -869,8 +945,20 @@
         }
 
         // Add person to array
-        function addPerson(name, birthdate) {
-            people.push({ name, birthdate: new Date(birthdate) });
+        function addPerson(name, dateValue, isPregnancy = false) {
+            const person = {
+                name,
+                isPregnancy,
+                actualBirthDate: null
+            };
+
+            if (isPregnancy) {
+                person.dueDate = new Date(dateValue);
+            } else {
+                person.birthdate = new Date(dateValue);
+            }
+
+            people.push(person);
             savePeople();
             updatePeopleList();
             updateUploadSection();
@@ -884,61 +972,128 @@
             updateUploadSection();
         }
 
+        // Update date label based on selected date
+        function updateDateLabel() {
+            const dateInput = document.getElementById('person-birthdate');
+            const dateStatus = document.getElementById('date-status');
+            const dateValue = dateInput.value;
+
+            if (!dateValue) {
+                dateStatus.textContent = '';
+                return;
+            }
+
+            const dateObj = new Date(dateValue);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            dateObj.setHours(0, 0, 0, 0);
+
+            if (dateObj > today) {
+                // Future date - pregnancy
+                const msPerDay = 24 * 60 * 60 * 1000;
+                const daysUntil = Math.floor((dateObj - today) / msPerDay);
+                const weeksUntil = Math.floor(daysUntil / 7);
+
+                if (daysUntil > 280) {
+                    dateStatus.textContent = '⚠️ Datum ist zu weit in der Zukunft (max. 40 Wochen)';
+                    dateStatus.style.color = '#f44336';
+                } else {
+                    const currentWeek = Math.floor((280 - daysUntil) / 7);
+                    const dayInWeek = (280 - daysUntil) % 7;
+                    if (currentWeek >= 0) {
+                        dateStatus.textContent = `🤰 Schwangerschaft (SSW ${currentWeek}+${dayInWeek})`;
+                        dateStatus.style.color = '#4CAF50';
+                    } else {
+                        dateStatus.textContent = '⚠️ Datum liegt vor der Empfängnis';
+                        dateStatus.style.color = '#ff9800';
+                    }
+                }
+            } else {
+                // Past date - already born
+                const msPerDay = 24 * 60 * 60 * 1000;
+                const daysOld = Math.floor((today - dateObj) / msPerDay);
+                if (daysOld === 0) {
+                    dateStatus.textContent = '👶 Heute geboren';
+                } else if (daysOld === 1) {
+                    dateStatus.textContent = '👶 Gestern geboren';
+                } else if (daysOld < 30) {
+                    dateStatus.textContent = `👶 Bereits geboren (${daysOld} Tage alt)`;
+                } else if (daysOld < 365) {
+                    const weeks = Math.floor(daysOld / 7);
+                    dateStatus.textContent = `👶 Bereits geboren (${weeks} Wochen alt)`;
+                } else {
+                    const years = Math.floor(daysOld / 365);
+                    dateStatus.textContent = `👤 Bereits geboren (${years} Jahr${years !== 1 ? 'e' : ''} alt)`;
+                }
+                dateStatus.style.color = '#2196F3';
+            }
+        }
+
         // Handle add person button click
         function handleAddPerson() {
             const nameInput = document.getElementById('person-name');
             const birthdateInput = document.getElementById('person-birthdate');
-            
-            const name = nameInput.value.trim();
-            const birthdate = birthdateInput.value;
-            
+            const name = nameInput.value.trim() || 'Baby';
+            const dateValue = birthdateInput.value;
+
             // Validate inputs
-            if (!name) {
-                alert('Please enter a name');
+            if (!dateValue) {
+                alert('Bitte wählen Sie ein Datum');
                 return;
             }
-            
-            if (!birthdate) {
-                alert('Please select a birthdate');
-                return;
+
+            const dateObj = new Date(dateValue);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            dateObj.setHours(0, 0, 0, 0);
+
+            // Automatically determine if it's a pregnancy based on date
+            const isPregnancy = dateObj > today;
+
+            if (isPregnancy) {
+                // Check if due date is not too far in the future (more than 280 days)
+                const msPerDay = 24 * 60 * 60 * 1000;
+                const daysUntil = Math.floor((dateObj - today) / msPerDay);
+                if (daysUntil > 280) {
+                    alert('Errechneter Geburtstermin ist zu weit in der Zukunft (max. 40 Wochen)');
+                    return;
+                }
             }
-            
-            const birthdateObj = new Date(birthdate);
-            if (birthdateObj > new Date()) {
-                alert('Birthdate must be in the past');
-                return;
-            }
-            
-            addPerson(name, birthdate);
-            
+
+            addPerson(name, dateValue, isPregnancy);
+
             // Clear inputs
             nameInput.value = '';
             birthdateInput.value = '';
+            document.getElementById('date-status').textContent = '';
         }
 
         // Update the people list display
         function updatePeopleList() {
             const listContainer = document.getElementById('people-list');
-            
+
             if (people.length === 0) {
-                listContainer.innerHTML = '<p style="color: #999; text-align: center;">No people added yet</p>';
+                listContainer.innerHTML = '<p style="color: #999; text-align: center;">Noch keine Personen hinzugefügt</p>';
                 return;
             }
-            
+
             listContainer.innerHTML = people.map((person, index) => {
                 // Get just the month and year for compact display
-                const locale = navigator.language || 'en-US';
-                const shortDate = person.birthdate.toLocaleDateString(locale, { 
-                    month: 'short', 
-                    year: 'numeric' 
+                const locale = navigator.language || 'de-DE';
+                const date = person.isPregnancy ? person.dueDate : person.birthdate;
+                const shortDate = date.toLocaleDateString(locale, {
+                    month: 'short',
+                    year: 'numeric'
                 });
+                const icon = person.isPregnancy ? '🤰' : '';
+                const label = person.isPregnancy ? 'ET' : '';
                 return `
                     <div class="person-item">
                         <div class="person-info">
-                            <span class="person-name">${person.name}</span>
-                            <span class="person-birthdate">(${shortDate})</span>
+                            <span class="person-name">${icon} ${person.name}</span>
+                            <span class="person-birthdate">(${label}${label ? ' ' : ''}${shortDate})</span>
                         </div>
-                        <button class="remove-btn" onclick="removePerson(${index})" title="Remove">×</button>
+                        <button class="remove-btn" onclick="removePerson(${index})" title="Entfernen">×</button>
                     </div>
                 `;
             }).join('');
@@ -1032,19 +1187,137 @@
             });
         }
 
-        // Calculate age between two dates
-        function calculateAge(birthdate, photoDate) {
+        // Calculate age or pregnancy status
+        function calculateAge(person, photoDate) {
             const msPerDay = 24 * 60 * 60 * 1000;
-            const totalDays = Math.floor((photoDate - birthdate) / msPerDay);
-            
-            if (totalDays < 0) {
-                return { years: 0, days: 0, notBornYet: true };
+
+            if (person.isPregnancy) {
+                const dueDate = person.dueDate;
+                const photoDays = Math.floor(photoDate / msPerDay);
+                const dueDays = Math.floor(dueDate / msPerDay);
+                const daysDifference = photoDays - dueDays;
+
+                // Photo was taken before birth
+                if (daysDifference < 0) {
+                    return calculatePregnancyAge(Math.abs(daysDifference));
+                }
+                // Photo was taken after due date (baby should be born)
+                else {
+                    return {
+                        status: 'overdue',
+                        daysOverdue: daysDifference,
+                        displayText: `${daysDifference} Tage überfällig`
+                    };
+                }
+            } else {
+                const birthdate = person.birthdate;
+                const totalDays = Math.floor((photoDate - birthdate) / msPerDay);
+
+                if (totalDays < 0) {
+                    // Photo was taken before birth - calculate pregnancy status
+                    // Assume standard 280 days pregnancy
+                    const daysBeforeBirth = Math.abs(totalDays);
+                    const pregnancyResult = calculatePregnancyAge(daysBeforeBirth);
+
+                    // Add special flag to indicate this was in utero
+                    if (pregnancyResult.status === 'unborn') {
+                        pregnancyResult.inUtero = true;
+                        pregnancyResult.personName = person.name;
+                        // Update display text for in-utero photos
+                        pregnancyResult.displayText = formatPregnancyDisplay(
+                            pregnancyResult.weeksPregnant,
+                            pregnancyResult.daysInWeek,
+                            pregnancyResult.daysUntilBirth,
+                            true  // isInUtero flag
+                        );
+                    }
+
+                    return pregnancyResult;
+                }
+
+                const years = Math.floor(totalDays / 365);
+                const days = totalDays % 365;
+
+                return {
+                    status: 'born',
+                    years,
+                    days,
+                    totalDays,
+                    displayText: formatBornAge({ years, days, totalDays })
+                };
             }
-            
-            const years = Math.floor(totalDays / 365);
-            const days = totalDays % 365;
-            
-            return { years, days, totalDays };
+        }
+
+        // Calculate pregnancy age (SSW)
+        function calculatePregnancyAge(daysUntilBirth) {
+            const totalPregnancyDays = 280; // Standard pregnancy length
+            const currentPregnancyDays = totalPregnancyDays - daysUntilBirth;
+
+            // Handle edge case - photo before conception
+            if (currentPregnancyDays < 0) {
+                return {
+                    status: 'pre-conception',
+                    displayText: 'Vor der Empfängnis'
+                };
+            }
+
+            // Calculate SSW (Schwangerschaftswoche)
+            const weeksPregnant = Math.floor(currentPregnancyDays / 7);
+            const daysInWeek = currentPregnancyDays % 7;
+
+            // Determine trimester
+            let trimester;
+            if (weeksPregnant <= 12) trimester = 1;
+            else if (weeksPregnant <= 27) trimester = 2;
+            else trimester = 3;
+
+            return {
+                status: 'unborn',
+                weeksPregnant,
+                daysInWeek,
+                totalDaysPregnant: currentPregnancyDays,
+                daysUntilBirth,
+                trimester,
+                displayText: formatPregnancyDisplay(weeksPregnant, daysInWeek, daysUntilBirth, false)
+            };
+        }
+
+        // Format pregnancy display
+        function formatPregnancyDisplay(weeks, days, daysUntilBirth, isInUtero = false) {
+            // Primary display: SSW format with days
+            const sswDisplay = `SSW ${weeks}+${days}${days === 1 ? ' Tag' : ' Tage'}`;
+
+            // For current pregnancies, add remaining time info
+            if (!isInUtero) {
+                let timeInfo;
+                if (daysUntilBirth <= 7) {
+                    timeInfo = `noch ${daysUntilBirth} Tag${daysUntilBirth !== 1 ? 'e' : ''}`;
+                } else if (daysUntilBirth <= 30) {
+                    const weeksLeft = Math.floor(daysUntilBirth / 7);
+                    timeInfo = `noch ${weeksLeft} Woche${weeksLeft !== 1 ? 'n' : ''}`;
+                } else {
+                    timeInfo = `noch ${daysUntilBirth} Tage`;
+                }
+                return `${sswDisplay} (${timeInfo})`;
+            }
+
+            // For in-utero photos, just show SSW
+            return sswDisplay;
+        }
+
+        // Format age for born person
+        function formatBornAge(ageObject) {
+            const units = getLocalizedTimeUnits();
+
+            if (ageObject.years === 0) {
+                if (ageObject.days === 0) return 'Heute geboren!';
+                if (ageObject.days === 1) return '1 Tag';
+                if (ageObject.days < 30) return `${ageObject.days} Tage`;
+                if (ageObject.days < 100) return `${ageObject.days} Tage (${Math.floor(ageObject.days/7)} Wochen)`;
+                return `${ageObject.days} Tage`;
+            } else {
+                return `${ageObject.years} Jahr${ageObject.years !== 1 ? 'e' : ''} ${ageObject.days} Tag${ageObject.days !== 1 ? 'e' : ''}`;
+            }
         }
 
         // Get localized text for time units
@@ -1084,37 +1357,84 @@
 
         // Format age for display
         function formatAge(ageObject) {
+            // For new pregnancy/age objects, just return the displayText
+            if (ageObject.displayText) {
+                return ageObject.displayText;
+            }
+
+            // Legacy support for old age format
             const units = getLocalizedTimeUnits();
-            
+
             if (ageObject.notBornYet) {
                 return units.notBornYet;
             }
-            
+
             if (ageObject.years === 0) {
                 return `${ageObject.days} ${ageObject.days === 1 ? units.day : units.days}`;
             }
-            
+
             const yearText = `${ageObject.years} ${ageObject.years === 1 ? units.year : units.years}`;
             const dayText = `${ageObject.days} ${ageObject.days === 1 ? units.day : units.days}`;
             return `${yearText} ${dayText}`;
         }
 
+        // Pregnancy development information
+        const pregnancyDevelopment = {
+            8: "Baby ist etwa 1.6 cm groß (Himbeere)",
+            12: "Baby ist etwa 5.4 cm groß (Limette)",
+            16: "Baby ist etwa 11.6 cm groß (Avocado)",
+            20: "Baby ist etwa 16.4 cm groß (Banane)",
+            24: "Baby ist etwa 21.3 cm groß (Maiskolben)",
+            28: "Baby ist etwa 37.6 cm groß (Aubergine)",
+            32: "Baby ist etwa 42.4 cm groß (Ananas)",
+            36: "Baby ist etwa 47.4 cm groß (Melone)",
+            40: "Baby ist etwa 51.2 cm groß (Kürbis)"
+        };
+
+        // Get pregnancy development info for a given week
+        function getPregnancyDevelopmentInfo(weeks) {
+            // Find the closest week that has development info
+            const availableWeeks = Object.keys(pregnancyDevelopment).map(Number).sort((a, b) => a - b);
+            let closestWeek = null;
+
+            for (let week of availableWeeks) {
+                if (week <= weeks) {
+                    closestWeek = week;
+                } else {
+                    break;
+                }
+            }
+
+            return closestWeek ? pregnancyDevelopment[closestWeek] : null;
+        }
+
         // Check for milestones
-        function checkMilestones(ages) {
+        function checkMilestones(ages, pregnancies = []) {
             const milestones = [];
-            
+
+            // Check pregnancy milestones
+            pregnancies.forEach(preg => {
+                if (preg.status === 'unborn') {
+                    if (preg.weeksPregnant === 12) milestones.push('Ende 1. Trimester! 🎉');
+                    else if (preg.weeksPregnant === 20) milestones.push('Halbzeit! 🎊');
+                    else if (preg.weeksPregnant === 24) milestones.push('Lebensfähigkeit erreicht 💪');
+                    else if (preg.daysUntilBirth === 30) milestones.push('Nur noch 1 Monat! ⏰');
+                    else if (preg.daysUntilBirth === 7) milestones.push('Nur noch 1 Woche! 🎆');
+                }
+            });
+
             ages.forEach(age => {
                 // Check for specific day milestones
-                if (age.totalDays === 100) milestones.push('100 Days! 🎉');
-                else if (age.totalDays === 365) milestones.push('1 Year! 🎂');
-                else if (age.totalDays === 730) milestones.push('2 Years! 🎈');
-                else if (age.totalDays === 1000) milestones.push('1000 Days! 🌟');
-                else if (age.totalDays === 1825) milestones.push('5 Years! 🎊');
-                else if (age.years === 10 && age.days === 0) milestones.push('10 Years! 🏆');
-                else if (age.years === 18 && age.days === 0) milestones.push('18 Years! 🎓');
-                else if (age.years === 21 && age.days === 0) milestones.push('21 Years! 🥳');
+                if (age.totalDays === 100) milestones.push('100 Tage! 🎉');
+                else if (age.totalDays === 365) milestones.push('1 Jahr! 🎂');
+                else if (age.totalDays === 730) milestones.push('2 Jahre! 🎈');
+                else if (age.totalDays === 1000) milestones.push('1000 Tage! 🌟');
+                else if (age.totalDays === 1825) milestones.push('5 Jahre! 🎊');
+                else if (age.years === 10 && age.days === 0) milestones.push('10 Jahre! 🏆');
+                else if (age.years === 18 && age.days === 0) milestones.push('18 Jahre! 🎓');
+                else if (age.years === 21 && age.days === 0) milestones.push('21 Jahre! 🥳');
             });
-            
+
             return milestones;
         }
 
@@ -1287,44 +1607,86 @@
                 // Arrays to store age data for both display and overlay
                 let agesData = [];
                 let calculatedAges = [];
+                let pregnancyData = [];
                 
                 // Calculate and display ages
                 const agesHtml = people.map((person, index) => {
-                    const age = calculateAge(person.birthdate, photoDate);
+                    const age = calculateAge(person, photoDate);
                     const formattedAge = formatAge(age);
-                    
+
                     // Store calculated age for milestone check
-                    calculatedAges.push(age);
-                    
-                    // Determine age category and icon
+                    if (age.status === 'born') {
+                        calculatedAges.push(age);
+                    } else if (age.status === 'unborn') {
+                        pregnancyData.push(age);
+                    }
+
+                    // Determine age category and icon based on status
                     let ageClass = '';
                     let ageValueClass = '';
                     let badgeClass = '';
                     let icon = '';
-                    
-                    if (age.notBornYet) {
+                    let secondaryInfo = '';
+
+                    if (age.status === 'unborn') {
+                        // Pregnancy - different icons for each trimester
+                        ageClass = `unborn trimester-${age.trimester}`;
+                        ageValueClass = 'pregnancy-age';
+                        badgeClass = 'pregnancy-badge';
+
+                        // Get development info for this week
+                        const developmentInfo = getPregnancyDevelopmentInfo(age.weeksPregnant);
+
+                        if (age.inUtero) {
+                            // Photo from when child was in utero (now born)
+                            ageClass += ' in-utero';  // Add special class for in-utero photos
+                            icon = '👶';  // Baby icon since they're born now
+                            secondaryInfo = `<div class="secondary-info">🤰 Im Mutterleib</div>`;
+                            if (developmentInfo) {
+                                secondaryInfo += `<div class="development-info">${developmentInfo}</div>`;
+                            }
+                        } else {
+                            // Current pregnancy
+                            if (age.trimester === 1) icon = '🤰🏻';  // Early pregnancy
+                            else if (age.trimester === 2) icon = '🤰';   // Mid pregnancy
+                            else icon = '🤰🏾';  // Late pregnancy
+                            secondaryInfo = `<div class="secondary-info">${age.trimester}. Trimester</div>`;
+                            if (developmentInfo) {
+                                secondaryInfo += `<div class="development-info">${developmentInfo}</div>`;
+                            }
+                        }
+                    } else if (age.status === 'overdue') {
+                        ageClass = 'overdue';
+                        ageValueClass = 'pregnancy-age';
+                        icon = '⏰';  // Overdue indicator
+                    } else if (age.status === 'pre-conception') {
+                        ageClass = '';
+                        icon = '✨';
+                    } else if (age.status === 'not-yet-born') {
                         ageClass = '';
                         icon = '⏳';
-                    } else if (age.years === 0 || (age.years === 1 && age.days < 30)) {
-                        // Baby: under 1 year
-                        ageClass = 'baby';
-                        ageValueClass = 'baby-age';
-                        badgeClass = 'baby-badge';
-                        icon = '👶';
-                    } else if (age.years < 13) {
-                        // Child: 1-12 years
-                        ageClass = 'child';
-                        ageValueClass = 'child-age';
-                        badgeClass = 'child-badge';
-                        icon = '🧒';
-                    } else {
-                        // Adult: 13+ years
-                        ageClass = 'adult';
-                        ageValueClass = 'adult-age';
-                        badgeClass = 'adult-badge';
-                        icon = '👤';
+                    } else if (age.status === 'born') {
+                        if (age.years === 0 || (age.years === 1 && age.days < 30)) {
+                            // Baby: under 1 year
+                            ageClass = 'baby';
+                            ageValueClass = 'baby-age';
+                            badgeClass = 'baby-badge';
+                            icon = '👶';
+                        } else if (age.years < 13) {
+                            // Child: 1-12 years
+                            ageClass = 'child';
+                            ageValueClass = 'child-age';
+                            badgeClass = 'child-badge';
+                            icon = '🧒';
+                        } else {
+                            // Adult: 13+ years
+                            ageClass = 'adult';
+                            ageValueClass = 'adult-age';
+                            badgeClass = 'adult-badge';
+                            icon = '👤';
+                        }
                     }
-                    
+
                     // Store data for overlay
                     agesData.push({
                         name: person.name,
@@ -1332,21 +1694,22 @@
                         icon: icon,
                         badgeClass: badgeClass
                     });
-                    
+
                     // Format age with larger numbers
                     const ageDisplay = formattedAge.replace(/(\d+)/g, '<span class="age-value-number">$1</span>');
-                    
+
                     return `
                         <div class="age-item ${ageClass}">
-                            <button class="age-item-remove" 
-                                    onclick="togglePersonExclusion('${person.name}')" 
+                            <button class="age-item-remove"
+                                    onclick="togglePersonExclusion('${person.name}')"
                                     data-person-name="${person.name}"
-                                    title="Exclude from share">×</button>
+                                    title="Von Teilen ausschließen">×</button>
                             <div class="age-header">
                                 <span class="age-icon">${icon}</span>
                                 <span class="age-person-name">${person.name}</span>
                             </div>
                             <div class="age-value ${ageValueClass}">${ageDisplay}</div>
+                            ${secondaryInfo}
                         </div>
                     `;
                 }).join('');
@@ -1360,7 +1723,7 @@
                 excludedPeople.clear();
                 
                 // Check for milestones and trigger confetti
-                const milestones = checkMilestones(calculatedAges);
+                const milestones = checkMilestones(calculatedAges, pregnancyData);
                 const milestoneBadge = document.getElementById('milestone-badge');
                 
                 if (milestones.length > 0) {
@@ -1451,9 +1814,6 @@
         updatePeopleList();
         updateUploadSection();
         initializeDragAndDrop();
-        
-        // Set max date for birthdate input to today
-        document.getElementById('person-birthdate').max = new Date().toISOString().split('T')[0];
     </script>
 </body>
 </html>
