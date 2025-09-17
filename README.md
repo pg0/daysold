@@ -1,6 +1,6 @@
 # DaysOld - Foto-Altersrechner
 
-Eine einfache Web-Anwendung zur Berechnung des Alters von Personen basierend auf EXIF-Zeitstempeln von Fotos.
+Eine einfache Web-Anwendung zur Berechnung des Alters von Personen basierend auf EXIF-Zeitstempeln von Fotos.\
 Es werden keine Fotos übertragen, nur im Browser geladen !
 
 ## 🎯 Funktionen
