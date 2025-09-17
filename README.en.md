@@ -1,13 +1,14 @@
 # DaysOld - Photo Age Calculator
 
-A simple web application that calculates people's ages based on EXIF timestamps from photos.
+A simple web application that calculates people's ages based on EXIF timestamps from photos.\
+No Pictures are transfered, only laoded in the Browser !
 
 ## 🎯 Features
 
 - **People Management**: Add multiple people with names and birthdates
 - **EXIF Data Analysis**: Automatic extraction of capture date from photo metadata
-- **Age Calculation**: Precise calculation of age at the time the photo was taken
-- **Pregnancy Mode**: Special display for unborn babies
+- **Age Calculation**: Precise calculation of age at the time the photo was taken / created
+- **Pregnancy Mode** (BABY-Version): Special display for unborn babies
 - **Photo Sharing**: Create and share polaroid-style images with age information
 - **Responsive Design**: Optimized for desktop and mobile devices
 
@@ -32,13 +33,6 @@ A simple web application that calculates people's ages based on EXIF timestamps 
 - **No Installation Required**: Works directly in the browser
 - **EXIF.js Integration**: Reads metadata directly from image files
 - **Privacy**: All calculations are performed locally in the browser
-
-## 🌐 Browser Compatibility
-
-Works in all modern browsers:
-- Chrome/Edge 90+
-- Firefox 88+
-- Safari 14+
 
 ## 📝 License
 
