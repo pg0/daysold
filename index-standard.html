@@ -243,9 +243,45 @@
             margin-bottom: 30px;
         }
 
-        .upload-section.disabled {
-            opacity: 0.5;
+        /* Full page drop zone overlay */
+        body.dragover::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(76, 175, 80, 0.1);
+            border: 3px dashed #4CAF50;
+            z-index: 9998;
             pointer-events: none;
+        }
+
+        body.dragover::after {
+            content: '📸 Drop photo anywhere';
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            color: #4CAF50;
+            font-weight: bold;
+            z-index: 9999;
+            pointer-events: none;
+            background: white;
+            padding: 20px 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .upload-section.disabled h2,
+        .upload-section.disabled .drop-zone {
+            opacity: 0.5;
+        }
+
+        .upload-section.disabled .drop-zone,
+        .upload-section.disabled .drop-zone button {
+            cursor: not-allowed;
         }
 
         .upload-section.compact {
@@ -259,12 +295,12 @@
         }
 
         .upload-section.compact .drop-zone {
-            min-height: 60px;
-            padding: 15px;
+            min-height: 120px;
+            padding: 20px;
         }
 
         .upload-section.compact .drop-zone-icon {
-            font-size: 1.8rem;
+            font-size: 2.5rem;
         }
 
         .upload-section.compact .drop-zone-text {
@@ -843,10 +879,11 @@
         <!-- Upload Section -->
         <div class="upload-section disabled" id="upload-section">
             <h2>Upload Photo</h2>
-            <div class="drop-zone" id="drop-zone" onclick="document.getElementById('photo-input').click()">
+            <div class="drop-zone" id="drop-zone">
                 <div class="drop-zone-content" id="drop-zone-content">
                     <div class="drop-zone-icon">🖼️</div>
                     <div class="drop-zone-text">Drag & drop your photo here</div>
+                    <button type="button" class="action-btn">Select photo</button>
                     <div class="drop-zone-subtext">
                         <span class="divider">or click anywhere to browse</span>
                     </div>
@@ -855,9 +892,9 @@
                     <div class="spinner"></div>
                     <div class="loading-text">Reading photo data...</div>
                 </div>
-                <input type="file" id="photo-input" accept="image/*" onchange="handleImageUpload(this.files[0])" style="display: none;">
             </div>
-            <div class="file-name" id="file-name"></div>
+            <input type="file" id="photo-input" accept="image/*" hidden>
+            <div class="file-name" id="file-name" role="status"></div>
         </div>
 
         <!-- Results Section -->
@@ -1072,9 +1109,35 @@
             const uploadSection = document.getElementById('upload-section');
             if (people.length > 0) {
                 uploadSection.classList.remove('disabled');
+                showUploadMessage('');
             } else {
                 uploadSection.classList.add('disabled');
             }
+        }
+
+        // Show a status line below the drop zone
+        function showUploadMessage(text) {
+            document.getElementById('file-name').textContent = text;
+        }
+
+        // Photos need at least one person; point the user to the form otherwise
+        function requirePerson() {
+            if (people.length > 0) return true;
+            showUploadMessage('Add a person first, then upload a photo.');
+            document.getElementById('person-name').focus();
+            return false;
+        }
+
+        // Entry point for a photo chosen by click or by drop
+        function selectPhoto(file) {
+            if (!file || !requirePerson()) return;
+
+            if (!file.type.startsWith('image/')) {
+                showUploadMessage('Please choose an image file.');
+                return;
+            }
+
+            handleImageUpload(file);
         }
 
         // Format date for display using browser locale
@@ -1101,7 +1164,7 @@
             loadingSpinner.classList.add('active');
             
             // Update file name display
-            document.getElementById('file-name').textContent = `Processing: ${file.name}`;
+            showUploadMessage(`Processing: ${file.name}`);
             
             // Create file reader for image display immediately
             const reader = new FileReader();
@@ -1114,7 +1177,7 @@
                     dropZone.classList.remove('processing');
                     dropZoneContent.style.display = 'flex';
                     loadingSpinner.classList.remove('active');
-                    document.getElementById('file-name').textContent = '';
+                    showUploadMessage('');
                     
                     // Display results immediately
                     displayResults(imageUrl, photoDate, dateSource);
@@ -1503,70 +1566,58 @@
 
 
 
-        // Initialize drag and drop
-        function initializeDragAndDrop() {
+        // Initialize photo selection: click to browse and drag and drop anywhere on the page
+        function initializeUpload() {
             const dropZone = document.getElementById('drop-zone');
-            const uploadSection = document.getElementById('upload-section');
-            
-            // Prevent default drag behaviors
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropZone.addEventListener(eventName, preventDefaults, false);
-                document.body.addEventListener(eventName, preventDefaults, false);
+            const photoInput = document.getElementById('photo-input');
+            let dragCounter = 0;
+
+            function isFileDrag(e) {
+                return Array.from(e.dataTransfer.types).includes('Files');
+            }
+
+            function clearDragState() {
+                dragCounter = 0;
+                document.body.classList.remove('dragover');
+                dropZone.classList.remove('dragover');
+            }
+
+            dropZone.addEventListener('click', function() {
+                if (requirePerson()) photoInput.click();
             });
-            
-            // Highlight drop zone when item is dragged over it
-            ['dragenter', 'dragover'].forEach(eventName => {
-                dropZone.addEventListener(eventName, () => {
-                    if (!uploadSection.classList.contains('disabled')) {
-                        dropZone.classList.add('dragover');
-                    }
-                }, false);
+
+            photoInput.addEventListener('change', function() {
+                selectPhoto(photoInput.files[0]);
+                photoInput.value = '';
             });
-            
-            ['dragleave', 'drop'].forEach(eventName => {
-                dropZone.addEventListener(eventName, () => {
-                    dropZone.classList.remove('dragover');
-                }, false);
-            });
-            
-            // Handle dropped files
-            dropZone.addEventListener('drop', handleDrop, false);
-            
-            // Prevent click event from propagating when processing
-            dropZone.addEventListener('click', function(e) {
-                if (dropZone.classList.contains('processing')) {
-                    e.stopPropagation();
+
+            document.addEventListener('dragenter', function(e) {
+                if (!isFileDrag(e)) return;
+                e.preventDefault();
+                dragCounter++;
+                if (people.length > 0) {
+                    document.body.classList.add('dragover');
+                    dropZone.classList.add('dragover');
                 }
             });
-        }
-        
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        
-        function handleDrop(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const uploadSection = document.getElementById('upload-section');
-            if (uploadSection.classList.contains('disabled')) {
-                return;
-            }
-            
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            
-            if (files.length > 0) {
-                const file = files[0];
-                
-                // Check if it's an image
-                if (file.type.startsWith('image/')) {
-                    handleImageUpload(file);
-                } else {
-                    alert('Please drop an image file');
-                }
-            }
+
+            document.addEventListener('dragover', function(e) {
+                if (isFileDrag(e)) e.preventDefault();
+            });
+
+            document.addEventListener('dragleave', function(e) {
+                if (!isFileDrag(e)) return;
+                dragCounter--;
+                if (dragCounter <= 0) clearDragState();
+            });
+
+            document.addEventListener('drop', function(e) {
+                if (!isFileDrag(e)) return;
+                e.preventDefault();
+                clearDragState();
+                if (dropZone.classList.contains('processing')) return;
+                selectPhoto(e.dataTransfer.files[0]);
+            });
         }
 
         // Sync mobile inputs with hidden date input
@@ -1596,7 +1647,7 @@
         loadPeople();
         updatePeopleList();
         updateUploadSection();
-        initializeDragAndDrop();
+        initializeUpload();
 
         // Set max date for birthdate input to today
         document.getElementById('person-birthdate').max = new Date().toISOString().split('T')[0];
